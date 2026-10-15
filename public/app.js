@@ -45,7 +45,7 @@ const FEAT = [
   ['sun', 'sun', 'Sonne'], ['timer', 'timer', 'Timer'], ['saver', 'leaf', 'Stromsparen'],
   ['temp', 'temp', 'Temperatur'], ['alarms', 'bell', 'Alarme'], ['eval', 'evals', 'Auswertung'],
 ];
-const FTITLE = { schedule: 'Zeitplan', idle: 'Nachts aus, wenn nicht benutzt', vacation: 'Ferienmodus', sun: 'Sonnenauf- und -untergang', timer: 'Timer', saver: 'Stromsparen',
+const FTITLE = { schedule: 'Zeitplan', idle: 'Nachts aus', vacation: 'Ferienmodus', sun: 'Sonnenauf- und -untergang', timer: 'Timer', saver: 'Stromsparen',
   temp: 'Temperatur', alarms: 'Alarme', eval: 'Auswertung', settings: 'Einstellungen', tech: 'Technische Details', room: 'Raum wählen', roomnew: 'Eigener Raum' };
 const RI = (d) => `<svg viewBox="0 0 64 64" width="58" height="58" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">${d}</svg>`;
 const ROOM_ICON = {
@@ -191,7 +191,7 @@ function show() {
   ghost?.remove(); ghost = null;
   if (dir && !reduced && S) {
     ghost = document.createElement('div');
-    ghost.className = 'ghost';
+    ghost.className = 'pageghost';
     const inner = app.cloneNode(true); inner.removeAttribute('id'); inner.removeAttribute('aria-live');
     ghost.append(inner);
     document.body.append(ghost);
@@ -289,7 +289,7 @@ function homeHTML() {
     <button type="button" class="card sum" data-go="energy"><span class="sl">Heute, alle Steckdosen</span><b>${kwh(todayWh)}<small>kWh</small></b>
       <div class="spark" data-spark="all|${S.today}" data-keep="all|${S.today}|${Math.floor(S.now / 300e3)}"></div><span class="sl">CHF ${chf(todayWh)} · jetzt ${pw(total)}<i class="chev"></i></span></button>
     <p class="sec">Für alle Steckdosen</p>
-    <div class="qg">${tileQ('data-go="guard"', Q.shield, 'Home Guard', guardOn.length ? `${guardOn.length} in Ferien` : 'Aus', guardOn.length > 0)}
+    <div class="qg four">${tileQ('data-go="guard"', Q.shield, 'Home Guard', guardOn.length ? `${guardOn.length} in Ferien` : 'Aus', guardOn.length > 0)}
       ${tileQ('data-go="rules"', Q.rules, 'Regeln', rulesOn ? `${rulesOn} aktiv` : 'keine', rulesOn > 0)}
       ${tileQ('data-go="alarms"', Q.bell, 'Alarme', S.pushSubs ? 'Mitteilungen an' : 'Aus', S.pushSubs > 0)}
       ${tileQ('data-go="more"', Q.sliders, 'Mehr', 'Preis, Standort', false)}</div>${FREE}`;
@@ -312,7 +312,7 @@ function deviceHTML(d) {
       <div class="spark" data-spark="${d.mac}|${S.today}" data-keep="${d.mac}|${S.today}|${Math.floor(S.now / 300e3)}"></div>
       <span class="ts" data-sparkstats="${d.mac}" data-keep="${d.mac}|${Math.floor(S.now / 300e3)}"><span>Höchstwert<b>–</b></span><span>Durchschnitt<b>–</b></span><span>Kosten<b>–</b></span></span></button>
     <p class="sec">Automationen</p>
-    <div class="qg">${AUTOS.map(([k, ic, l]) => { const [on, txt] = featInfo(d, k); return tileQ(`data-go="dev/${d.mac}/${k}"`, Q[ic], l, on ? esc(txt) : 'Aus', on); }).join('')}</div>${FREE}`;
+    <div class="qg four">${AUTOS.map(([k, ic, l]) => { const [on, txt] = featInfo(d, k); return tileQ(`data-go="dev/${d.mac}/${k}"`, Q[ic], l, on ? esc(txt) : 'Aus', on); }).join('')}</div>${FREE}`;
 }
 
 // ---------- Hinzufügen ----------
@@ -370,7 +370,7 @@ function featureHTML(d, k) {
       <div class="ls">${[['offline', 'Offline', 'keine Antwort seit 3 Minuten'], ['unusual', 'Ungewöhnlicher Verbrauch', 'deutlich mehr als sonst'], ['switchedOn', 'Eingeschaltet', 'am Gerät oder von einer Regel'], ['hot', 'Zu warm', `über ${c.temp.on ? c.temp.max : 45} °C`]]
         .map(([key, l, sub]) => `<div class="row"><span class="tx"><b>${l}</b><span>${sub}</span></span>${sw(`alarms.${key}`, c.alarms[key], l)}</div>`).join('')}</div>`;
     case 'eval': return head + chartHTML(d.mac, false) + totalsHTML(d.mac);
-    case 'settings': return HD('Einstellungen', `dev/${d.mac}`) + `<div class="hero">${I.plug}<b>${esc(d.name)}</b></div>
+    case 'settings': return HD('Einstellungen', `dev/${d.mac}`) + `<div class="hero">${socket(d.relay, 72, d.online)}<b>${esc(d.name)}</b><small>${esc(d.typeName)}${d.cfg.room ? ` · ${esc(d.cfg.room)}` : ''}</small></div>
       <div class="ls">${lrow('Name', `<input type="text" data-in="name" value="${esc(d.cfg.name)}" placeholder="${esc(d.name)}" maxlength="40">`)}
         ${row('Raum', chev(esc(d.cfg.room || 'keiner')), '', `data-go="dev/${d.mac}/room"`)}
         ${lrow('Temperatur-Korrektur', inp('tcorr', 'number', c.tcorr, 'step="0.5" min="-10" max="10"'), '°C, wird zur Messung addiert')}
@@ -482,10 +482,12 @@ async function fillCharts() {
 }
 // Tageskurve klein, ohne Achsen (Startseite und Gerät)
 function sparkSVG(c) {
-  const pts = [], n = c.w.length;
-  for (let i = 0; i < n; i += 3) { const sl = c.w.slice(i, i + 3).filter((x) => x != null); if (sl.length) pts.push([i, sl.reduce((a, x) => a + x, 0) / sl.length]); }
+  const pts = [], full = c.w.length, nowI = c.day === S.today ? Math.ceil((S.now - new Date(`${c.day}T00:00:00`).getTime()) / 300e3) : full, n = Math.max(12, Math.min(full, nowI));
+  const step = c.w.slice(0, n).filter((x) => x != null).length > 40 ? 3 : 1;
+  for (let i = 0; i < n; i += step) { const sl = c.w.slice(i, i + step).filter((x) => x != null); if (sl.length) pts.push([i, sl.reduce((a, x) => a + x, 0) / sl.length]); }
   if (pts.length < 2) return '<span class="nodata">Noch keine Messwerte heute</span>';
-  const max = Math.max(1, ...pts.map((q) => q[1])), x = (i) => (i / (n - 1) * 300).toFixed(1), y = (w) => (46 - w / max * 40).toFixed(1), line = pts.map(([i, w]) => `${x(i)},${y(w)}`).join(' L');
+  const i0 = pts[0][0], max = Math.max(1, ...pts.map((q) => q[1])), x = (i) => ((i - i0) / Math.max(1, pts[pts.length - 1][0] - i0) * 300).toFixed(1), // ab der ersten Messung des Tages
+    y = (w) => (46 - w / max * 40).toFixed(1), line = pts.map(([i, w]) => `${x(i)},${y(w)}`).join(' L');
   return `<svg viewBox="0 0 300 48" width="100%" height="48" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4ade80" stop-opacity=".28"/><stop offset="1" stop-color="#4ade80" stop-opacity="0"/></linearGradient></defs>
     <path d="M${x(pts[0][0])},48 L${line} L${x(pts[pts.length - 1][0])},48Z" fill="url(#spg)"/><path d="M${line}" fill="none" stroke="#4ade80" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
 }
