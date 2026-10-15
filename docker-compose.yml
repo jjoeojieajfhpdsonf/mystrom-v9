@@ -1,0 +1,10 @@
+services:
+  mystrom-v9:
+    build: .
+    container_name: mystrom-v9
+    restart: unless-stopped
+    # Host-Netz: so erreicht die Oberfläche die mystrom-app unter 127.0.0.1
+    network_mode: host
+    environment:
+      PORT: ${MYSTROM_V9_PORT:-8092}
+      API_URL: ${MYSTROM_API_URL:-http://127.0.0.1:8091}   # die mystrom-app mit Messung, Regeln und Push
