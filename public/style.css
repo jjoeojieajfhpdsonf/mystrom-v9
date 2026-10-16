@@ -192,3 +192,11 @@ html.paging, html.paging body { overflow-x: hidden; }
 .tile.dev.big .face { transition: background .25s, box-shadow .25s, transform .15s; }
 .tile.dev.big:active .face { transform: scale(.98); filter: none; }
 .tile.dev.big .sock { transition: filter .3s; }
+/* Gerät wählen: Auswahl = heller Rahmen mit Häkchen; eingeschaltet nur am grünen Symbol, damit beides unterscheidbar bleibt */
+.pick .tile.room.on { background: var(--card); box-shadow: inset 0 0 0 .5px var(--edge); }
+.pick .tile.room.on .ico { background: rgb(74 222 128 / .12); color: var(--acc); }
+.pick .tile.room .sub, .pick .tile.room.on .sub, .pick .tile.room .tmp { color: var(--mut); }
+.pick .tile.room.sel { background: rgb(255 255 255 / .07); box-shadow: inset 0 0 0 2px var(--fg); }
+.pick .tile.room.sel .ico { background: var(--fg); color: var(--bg); }
+.pick .tile.room.sel .lb { color: var(--fg); }
+.pick .tile.room .chk { background: var(--acc); color: var(--on-acc); }
