@@ -276,26 +276,50 @@ const chev = (t = '') => `<span class="val">${t} ›</span>`;
 const subOf = (d) => (!d.online ? d.status : d.relay ? d.status.replace(/^[\d.,]+ k?W( · )?/, '') : d.status === 'Aus' ? '' : d.status.replace(/^Aus · /, ''));
 
 // ---------- Startseite ----------
+// ---------- Bausteine im Look von Version 9 ----------
+// schlanke Linien-Symbole (24 px) für die Kacheln
+const L = (d) => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const Q = {
+  clock: L('<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>'), moon: L('<path d="M19 14.5A7.5 7.5 0 0 1 9.5 5 7.5 7.5 0 1 0 19 14.5z"/>'),
+  temp: L('<path d="M10 5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0z"/><path d="M12 9v7"/>'), sun: L('<path d="M7 17a5 5 0 0 1 10 0M3 17h18M5 20h14M12 6v3M6 9l1.5 1.5M18 9l-1.5 1.5"/>'),
+  plane: L('<path d="M10 14 3 12l1-2 7 1 4-6h2l-2 7 5 1 1 2-6 1-2 6h-2z"/>'), bell: L('<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/>'),
+  leaf: L('<path d="M5 19C4 10 10 4 20 4c0 10-6 15-15 15zM5 19l8-8"/>'), timer: L('<path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/>'),
+  energy: L('<path d="M13 3 5 14h6l-1 7 8-11h-6z"/>'), scenes: L('<path d="m12 3 9 9-9 9-9-9z"/><path d="m12 8 4 4-4 4-4-4z"/>'),
+  shield: L('<path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6z"/>'), sliders: L('<path d="M5 7h14M5 17h14"/><circle cx="9" cy="7" r="2.2" fill="currentColor"/><circle cx="15" cy="17" r="2.2" fill="currentColor"/>'),
+  gear: L('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>'),
+};
+// die Steckdose als Bild; LED grün = an, rot = aus, grau = offline
+const socket = (on, h, online = true) => `<svg class="sock" viewBox="0 0 120 160" width="${Math.round(h * 0.75)}" height="${h}" aria-hidden="true">
+  <defs><linearGradient id="sb${h}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2c2f33"/><stop offset="1" stop-color="#121315"/></linearGradient>
+  <radialGradient id="sf${h}" cx=".5" cy=".4" r=".6"><stop offset="0" stop-color="#1e2023"/><stop offset="1" stop-color="#0c0d0f"/></radialGradient></defs>
+  <rect x="14" y="6" width="92" height="148" rx="40" fill="url(#sb${h})" stroke="rgb(255 255 255 / .09)"/>
+  <circle cx="60" cy="62" r="28" fill="url(#sf${h})" stroke="rgb(255 255 255 / .06)"/>
+  <circle cx="50" cy="58" r="4.4" fill="#040404"/><circle cx="70" cy="58" r="4.4" fill="#040404"/><circle cx="60" cy="72" r="4.4" fill="#040404"/>
+  <rect class="sled" x="44" y="126" width="32" height="5" rx="2.5" fill="${!online ? '#34373b' : on ? '#4ade80' : '#f87171'}"/></svg>`;
+// Bild der Steckdose; hat man selbst ein Symbol gewählt, steht dieses im Feld
+const devPic = (d, h) => (d.cfg.icon && d.cfg.icon !== 'plug' ? `<span class="ico">${devIcon(d)}</span>` : socket(d.relay, h, d.online));
+const qtile = (h, icon, label, sub, on) => `<button type="button" class="tile ${on ? 'act' : ''}" data-go="${h}"><span class="ico">${icon}</span><span class="lb">${label}</span><span class="sub">${sub}</span></button>`;
+const FREE = '<p class="note free">Alle Funktionen sind frei, auch die, für die myStrom PLUS oder PRO verlangt.</p>';
+
+// ---------- Startseite: ein Raster wie in der myStrom-App ----------
 function homeHTML() {
-  const hint = !store.get('swiped') && S.devices.length ? '<p class="hint">Kachel nach links oder rechts wischen schaltet · antippen öffnet die Funktionen</p>' : '';
-  const tile = (h, icon, label, sub = '') => `<button type="button" class="tile" data-go="${h}"><span class="ico">${icon}</span><span class="lb">${label}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</button>`;
-  const guardOn = S.devices.filter((d) => d.cfg.vacation.on).length;
+  const hint = !store.get('swiped') && S.devices.length ? '<p class="hint">Steckdose wischen schaltet · antippen öffnet die Funktionen</p>' : '';
+  const guardOn = S.devices.filter((d) => d.cfg.vacation.on), total = S.devices.reduce((a, d) => a + d.w, 0);
   const rulesOn = S.devices.reduce((a, d) => a + FEAT.filter(([k]) => k !== 'eval' && k !== 'alarms' && featInfo(d, k)[0]).length, 0);
-  const total = S.devices.reduce((a, d) => a + d.w, 0);
-  return `<header class="hd"><span></span><b>myStrom</b><span class="acts"><button type="button" class="ic" data-go="add" aria-label="Steckdose hinzufügen">＋</button><button type="button" class="ic" data-go="more" aria-label="Mehr">${I.menu}</button></span></header>
+  const first = guardOn.map((d) => d.cfg.vacation.from).sort()[0];
+  return `<i class="amb ${S.devices.some((d) => d.relay) ? 'on' : ''}"></i>
+    <header class="hd home"><span class="logo"><i></i>myStrom</span><span></span><span class="acts"><button type="button" class="ic" data-go="add" aria-label="Steckdose hinzufügen">＋</button><button type="button" class="ic" data-go="more" aria-label="Mehr">${Q.gear}</button></span></header>
     <div class="grid">
+      ${qtile('scenes', Q.scenes, 'Szenen', `${S.scenes.length} Szene${S.scenes.length === 1 ? '' : 'n'}`, false)}
+      ${qtile('guard', Q.shield, 'Home Guard', guardOn.length ? (first > S.today ? `ab ${dShort(first)}` : `${guardOn.length} in Ferien`) : 'Aus', guardOn.length > 0)}
+      ${qtile('energy', Q.energy, 'Verbrauch', `${pw(total)} jetzt`, false)}
+      ${qtile('rules', Q.clock, 'Regeln', rulesOn ? `${rulesOn} aktiv` : 'keine', rulesOn > 0)}
       ${S.devices.map((d) => `<div class="tile dev ${d.relay ? 'on' : ''} ${d.online ? '' : 'off-line'}" data-mac="${d.mac}">
-        <div class="face">${d.temp != null ? `<span class="tmp">${d.temp.toFixed(1)}°C</span>` : ''}${d.cfg.lock ? '<span class="lock" title="Tastensperre">🔒</span>' : ''}
-        <span class="ico">${devIcon(d)}</span><span class="lb">${d.relay ? `${pw(d.w)}<br>` : ''}${esc(d.name)}</span>
-        ${subOf(d) ? `<span class="sub">${esc(subOf(d))}</span>` : ''}
-        <span class="more" aria-hidden="true">›</span></div>
+        <div class="face">${d.temp != null ? `<span class="tmp">${d.temp.toFixed(1)}°</span>` : ''}${d.cfg.lock ? '<span class="lock" title="Tastensperre">🔒</span>' : ''}
+        ${devPic(d, 44)}<span class="lb">${esc(d.name)}</span><span class="sub">${esc(!d.online ? 'offline' : d.relay ? pw(d.w) : d.status.startsWith('Aus · Ferien') ? d.status : 'Aus')}</span></div>
         <button type="button" class="hit" data-swipe="${d.mac}" aria-label="${esc(d.name)}, ${d.relay ? 'an' : 'aus'}. Öffnen; Wischen oder Leertaste schaltet"></button></div>`).join('')}
-      ${tile('energy', I.bolt, `${pw(total)}<br>Verbrauch`)}
-      ${tile('scenes', I.scenes, 'Szenen')}
-      ${tile('guard', I.guard, 'Home Guard', guardOn ? `${guardOn} in Ferien` : '')}
-      ${tile('rules', I.rules, 'Regeln', rulesOn ? `${rulesOn} aktiv` : '')}
-      ${tile('alarms', I.bell, 'Alarme')}
-      ${S.devices.length ? '' : tile('more', I.plug, 'Steckdose hinzufügen')}
+      ${qtile('alarms', Q.bell, 'Alarme', S.pushSubs ? 'Mitteilungen an' : 'Aus', S.pushSubs > 0)}
+      ${qtile('more', Q.sliders, 'Mehr', S.devices.length ? 'Preis, Standort' : 'Steckdose hinzufügen', false)}
     </div>${hint}`;
 }
 
@@ -308,13 +332,16 @@ function addHTML() {
 
 // ---------- Gerät ----------
 function deviceHTML(d) {
-  return HD(esc(d.name), 'home', `<button type="button" class="ic" data-go="dev/${d.mac}/settings" aria-label="Einstellungen">${I.gear}</button>`, esc(d.cfg.room))
+  const ORDER = [['schedule', 'clock', 'Zeitplan'], ['idle', 'moon', 'Nachts aus'], ['temp', 'temp', 'Temperatur'], ['sun', 'sun', 'Sonne'], ['vacation', 'plane', 'Ferien'],
+    ['alarms', 'bell', 'Alarme'], ['saver', 'leaf', 'Stromsparen'], ['timer', 'timer', 'Timer'], ['eval', 'energy', 'Auswertung']];
+  const big = !d.online ? ['Offline', d.status] : d.relay ? [pw(d.w), 'An · wischen schaltet aus'] : ['Aus', 'wischen schaltet ein'];
+  return `<i class="amb ${d.relay ? 'on' : ''}"></i>` + HD(esc(d.name), 'home', `<button type="button" class="ic" data-go="dev/${d.mac}/settings" aria-label="Einstellungen">${Q.gear}</button>`)
     + `<div class="grid">
-      <div class="tile dev ${d.relay ? 'on' : ''} ${d.online ? '' : 'off-line'}">
-        <div class="face"><span class="ico">${I.toggle(d.relay)}</span><span class="lb">${d.relay ? `${pw(d.w)} · An` : 'Aus'}</span>${subOf(d) ? `<span class="sub">${esc(subOf(d))}</span>` : ''}</div>
+      <div class="tile dev big ${d.relay ? 'on' : ''} ${d.online ? '' : 'off-line'}">
+        <div class="face">${devPic(d, 64)}<span class="lb">${big[0]}</span><span class="sub">${esc(big[1])}</span></div>
         <button type="button" class="hit" data-swipe="${d.mac}" data-inpage="1" aria-label="${esc(d.name)} ${d.relay ? 'ausschalten' : 'einschalten'}"></button></div>
-      ${FEAT.map(([k, ic, l]) => { const [on, txt] = featInfo(d, k); return `<button type="button" class="tile feat ${on ? 'act' : ''}" data-go="dev/${d.mac}/${k}"><span class="ico">${I[ic]}</span><span class="lb">${l}</span><span class="sub">${on || k === 'eval' ? esc(txt) : 'aus'}</span></button>`; }).join('')}
-    </div>`;
+      ${ORDER.map(([k, ic, l]) => { const [on, txt] = featInfo(d, k); return `<button type="button" class="tile feat ${on && k !== 'eval' ? 'act' : ''}" data-go="dev/${d.mac}/${k}"><span class="ico">${Q[ic]}</span><span class="lb">${l}</span><span class="sub">${k === 'eval' ? `${kwh(d.todayWh)} kWh heute` : on ? esc(txt) : 'Aus'}</span></button>`; }).join('')}
+    </div>${FREE}`;
 }
 function featureHTML(d, k) {
   const c = d.cfg, back = k === 'tech' || k === 'room' || k === 'icon' ? `dev/${d.mac}/settings` : `dev/${d.mac}`; // roomnew hat eigenes Zurück
@@ -555,8 +582,11 @@ function eventsHTML() {
 }
 function moreHTML() {
   const s = S.settings;
-  return HD('Mehr', 'home') + `<p class="sec">Strom</p><div class="ls">${lrow('Preis pro kWh', `<input type="number" data-setting="price" value="${s.price}" step="0.01" min="0" max="2" inputmode="decimal">`, s.priceFromSolar ? 'CHF, vom Solar-Dashboard' : 'CHF')}</div>
-    <p class="sec">Standort</p><div class="ls">${row(esc(s.place || 'Für Sonnenauf- und -untergang'), val(`${Number(s.lat).toFixed(2)}, ${Number(s.lon).toFixed(2)}`), S.sun ? `heute ${S.sun.rise} – ${S.sun.set}` : '')}</div>
+  return HD('Mehr', 'home') + `<p class="sec">Strom</p><div class="ls">${lrow('Preis pro kWh', `<input type="number" data-setting="price" value="${s.price}" step="0.01" min="0" max="2" inputmode="decimal">`, 'CHF')}</div>
+    <p class="sec">Standort</p><div class="ls">
+      ${lrow('Ort', `<input type="text" data-place="1" value="${esc(s.place || '')}" placeholder="z. B. Habsburg" maxlength="80" enterkeyhint="search" autocomplete="off" style="max-width:200px">`, `${Number(s.lat).toFixed(2)}, ${Number(s.lon).toFixed(2)}${S.sun ? ` · Sonne ${S.sun.rise}–${S.sun.set}` : ''}`)}
+      ${'geolocation' in navigator ? row('Standort vom Handy übernehmen', chev(), 'einmalig, nach deiner Freigabe', 'data-geo="1"') : ''}</div>
+    <p class="note">Nur für Sonnenauf- und -untergang. Ein eingetippter Ort wird einmal bei Open-Meteo nachgeschlagen; vom Handy kommen die Koordinaten direkt.</p>
     <p class="sec">Steckdosen</p><div class="ls">${S.devices.map((d) => row(esc(d.name), chev(esc(d.ip)), `${esc(d.typeName)} · ${d.online ? 'erreichbar' : 'offline'}`, `data-go="dev/${d.mac}/settings"`)).join('')}
       ${lrow('Per IP hinzufügen', '<input type="text" id="addip" placeholder="192.168.0.42" inputmode="decimal" style="background:#2a2a2a;color:#e8e8e8;padding:7px 9px;text-align:left;max-width:160px">')}</div>
     <p class="note">Neue Steckdosen im WLAN findet die App von selbst. Eine IP brauchst du nur, wenn sie sich nicht meldet.</p>
@@ -768,6 +798,13 @@ app.addEventListener('click', async (e) => {
     if (!confirm(`${d.name} aus der App entfernen? Der Verlauf bleibt gespeichert; meldet sich die Steckdose wieder, erscheint sie neu.`)) return;
     try { await api(`api/devices/${d.mac}`, { method: 'DELETE' }); await load(); go('home'); } catch (x) { toast(x.message, true); }
   } else if (at('[data-push]')) { try { await pushEnable(); toast('Mitteilungen sind an'); await load(); } catch (x) { toast(x.message, true); } }
+  else if (at('[data-geo]')) {
+    haptic();
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const lat = Math.round(pos.coords.latitude * 1e4) / 1e4, lon = Math.round(pos.coords.longitude * 1e4) / 1e4;
+      try { S.settings = await api('api/settings', { method: 'PUT', body: JSON.stringify({ settings: { lat, lon } }) }); toast('Standort übernommen'); load(); } catch (x) { toast(x.message, true); }
+    }, (err) => toast(err.code === 1 ? 'Standort nicht freigegeben (in den Einstellungen des Handys änderbar)' : 'Standort nicht verfügbar', true), { timeout: 15000, maximumAge: 600000 });
+  }
   else if (at('[data-pushtest]')) { try { await api('api/push/test', { method: 'POST' }); toast('Test gesendet'); } catch (x) { toast(x.message, true); } }
 });
 // Eingaben: speichern, sobald ein Feld fertig ist
@@ -778,6 +815,10 @@ app.addEventListener('change', async (e) => {
     t.blur(); saveCfg(r1, patchOf(t.dataset.in, v));
   } else if (t.dataset.roomnew && t.value.trim()) {
     t.blur(); saveCfg(r1, { room: t.value.trim().slice(0, 40) }); setTimeout(() => back(`dev/${r1}/settings`), 180);
+  } else if (t.dataset.place && t.value.trim() && t.value.trim() !== S.settings.place) {
+    t.blur();
+    try { S.settings = await api('api/settings', { method: 'PUT', body: JSON.stringify({ settings: { place: t.value.trim() } }) }); render(); toast(`Gefunden: ${S.settings.place}`); load(); }
+    catch (x) { toast(x.message, true); render(); }
   } else if (t.dataset.setting) {
     try { S.settings = await api('api/settings', { method: 'PUT', body: JSON.stringify({ settings: { [t.dataset.setting]: Number(t.value) } }) }); t.blur(); render(); toast('Gespeichert'); } catch (x) { toast(x.message, true); }
   } else if (t.dataset.sceneName) {
