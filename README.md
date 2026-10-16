@@ -6,9 +6,14 @@ Dieses Projekt ist **nur die Oberfläche**. Messen, Schalten, Regeln, Verlauf un
 
 ## Aufbau
 
-- **Zuhause:** alle Steckdosen als Kacheln (Kachel öffnet, Power-Taste schaltet), Szenen, Tagesverbrauch mit Kurve, darunter Home Guard, Regeln, Alarme und Mehr. Oben ＋ zum Hinzufügen und das Zahnrad.
-- **Gerät im Fokus:** die Steckdose antippen schaltet, die LED wird grün (an) oder rot (aus). Darunter die Leistung, vier Schnelltasten (Nachts aus, Timer, Sparen, Ferien), die Tageskurve mit Höchstwert, Durchschnitt und Kosten, und alle Automationen als Kacheln an festen Plätzen.
-- **Unterseiten:** Einstellungen jeder Funktion, Verbrauch mit Diagramm und CSV-Export, Szenen, Home Guard, Regeln, Alarme, Mehr.
+Bedienung wie die [mystrom-app](https://github.com/jjoeojieajfhpdsonf/myStrom) und die echte myStrom-App, im Aussehen von Version 9:
+
+- **Startseite:** alle Steckdosen und Übersichten als Kacheln (Verbrauch, Szenen, Home Guard, Regeln, Alarme). Eine Steckdose nach links oder rechts **wischen schaltet** sie, wie Blättern zur nächsten Seite AN (grün) oder AUS (rot); **antippen öffnet** sie. Oben ＋ zum Hinzufügen.
+- **Gerät:** Kachelraster mit der Schalter-Kachel (antippen oder wischen schaltet) und allen Funktionen; Einstellungen hinter dem Zahnrad, dort auch Raum und Symbol wählen.
+- **Verbrauch:** grosse Zahl, Gerät über ein Overlay mit Kacheln wählen, Tag zurück und vor, Diagramm, Verbrauch und Kosten, CSV-Export.
+- **Szenen:** lange auf eine Szene drücken öffnet Ausführen, Bearbeiten und Löschen.
+
+Die Oberfläche folgt dem Stand der mystrom-app; neue Funktionen von dort lassen sich übernehmen, das Aussehen steckt in `public/style.css`.
 
 ## Starten
 

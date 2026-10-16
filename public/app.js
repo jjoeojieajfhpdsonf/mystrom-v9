@@ -1,6 +1,6 @@
-// Steckdosen – eigene App für myStrom WiFi Switches, mit allen Funktionen (auch PLUS, PRO, DATA PRO, HOME GUARD) frei.
-// Aufbau: Zuhause mit allen Steckdosen; ein Gerät im Fokus (Tesla-Muster), Automationen als Kacheln (myStrom-Muster).
-// Bedienung: Power-Taste oder die Steckdose antippen schaltet, die Kachel antippen öffnet das Gerät. Änderungen speichern sofort.
+// myStrom v9 – Bedienung wie die mystrom-app (und die echte myStrom-App), Aussehen nach Prototyp Version 9.
+// Alle Funktionen (auch PLUS, PRO, DATA PRO, HOME GUARD) frei.
+// Bedienung: Kachel wischen schaltet, tippen öffnet das Gerät. Änderungen speichern sofort.
 'use strict';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -46,7 +46,7 @@ const FEAT = [
   ['temp', 'temp', 'Temperatur'], ['alarms', 'bell', 'Alarme'], ['eval', 'evals', 'Auswertung'],
 ];
 const FTITLE = { schedule: 'Zeitplan', idle: 'Nachts aus', vacation: 'Ferienmodus', sun: 'Sonnenauf- und -untergang', timer: 'Timer', saver: 'Stromsparen',
-  temp: 'Temperatur', alarms: 'Alarme', eval: 'Auswertung', settings: 'Einstellungen', tech: 'Technische Details', room: 'Raum wählen', roomnew: 'Eigener Raum' };
+  temp: 'Temperatur', alarms: 'Alarme', eval: 'Auswertung', settings: 'Einstellungen', tech: 'Technische Details', room: 'Raum wählen', roomnew: 'Eigener Raum', icon: 'Symbol wählen' };
 const RI = (d) => `<svg viewBox="0 0 64 64" width="58" height="58" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">${d}</svg>`;
 const ROOM_ICON = {
   sofa: RI('<path d="M10 26h44v16H10zM14 26v-6h36v6M10 42v4M54 42v4M10 32h44"/><path d="M6 30h4v12H6zM54 30h4v12h-4z"/>'),
@@ -74,6 +74,42 @@ const ROOM_ICON = {
 const ROOMS = [['Babyzimmer', 'baby'], ['Badezimmer', 'bath'], ['Balkon', 'balcony'], ['Büro', 'office'], ['Esszimmer', 'dining'], ['Estrich', 'attic'], ['Flur', 'hall'],
   ['Garage', 'garage'], ['Garten', 'garden'], ['Gästezimmer', 'guest'], ['Heimkino', 'cinema'], ['Keller', 'stairs'], ['Kinderzimmer', 'kids'], ['Küche', 'kitchen'],
   ['Schlafzimmer', 'bed'], ['Waschküche', 'laundry'], ['Werkstatt', 'workshop'], ['Wohnzimmer', 'sofa']];
+// Geräte-Symbole: was an der Steckdose hängt
+const DI = (d) => `<svg viewBox="0 0 64 64" width="54" height="54" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">${d}</svg>`;
+const DEV_ICONS = [
+  ['plug', 'Steckdose', null],
+  ['lamp', 'Tischlampe', DI('<path d="M22 10h20l8 22H14zM32 32v18M22 54h20"/>')],
+  ['floor', 'Stehlampe', DI('<path d="M24 6h16l6 14H18zM32 20v34M24 56h16"/>')],
+  ['monitor', 'Bildschirm', DI('<path d="M8 12h48v30H8zM26 52h12M32 42v10"/>')],
+  ['pc', 'Computer', DI('<path d="M18 6h28v52H18zM24 14h16M24 20h16"/><circle cx="32" cy="46" r="3"/>')],
+  ['desk', 'Arbeitsplatz', DI('<path d="M20 12h24v16H20zM32 28v6M26 34h12M8 40h48M12 40v16M52 40v16"/>')],
+  ['tv', 'Fernseher', DI('<path d="M6 16h52v32H6zM24 54h16M26 10l6 6 6-6"/>')],
+  ['mirror', 'Smart Mirror', DI('<path d="M16 6h32v52H16zM20 10h24v44H20zM24 16h8M24 21h12M24 26h6"/>')],
+  ['speaker', 'Lautsprecher', DI('<rect x="18" y="6" width="28" height="52" rx="4"/><circle cx="32" cy="38" r="9"/><circle cx="32" cy="19" r="4"/>')],
+  ['coffee', 'Kaffeemaschine', DI('<path d="M14 22h28v16a10 10 0 0 1-10 10h-8a10 10 0 0 1-10-10zM42 26h4a6 6 0 0 1 0 12h-4M10 54h40M22 8c0 4 4 4 4 8M30 8c0 4 4 4 4 8"/>')],
+  ['kettle', 'Wasserkocher', DI('<path d="M18 20h24l4 34H14zM42 24c9 0 9 18 0 18M24 14h12M30 14v6"/>')],
+  ['fan', 'Ventilator', DI('<circle cx="32" cy="26" r="17"/><path d="M32 26c0-8 6-12 10-10s-2 10-10 10zM32 26c-7 4-14 1-13-4s10-3 13 4zM32 26c7 4 6 12 2 13s-6-6-2-13zM32 43v9M22 56h20"/>')],
+  ['heater', 'Heizung', DI('<path d="M10 16h44v32H10zM19 16v32M28 16v32M37 16v32M46 16v32M14 48v6M50 48v6"/>')],
+  ['washer', 'Waschmaschine', DI('<path d="M14 6h36v52H14zM14 16h36"/><circle cx="32" cy="36" r="11"/><circle cx="20" cy="11" r="1.5"/>')],
+  ['fridge', 'Kühlschrank', DI('<path d="M18 4h28v56H18zM18 24h28M24 12v6M24 30v10"/>')],
+  ['router', 'Router', DI('<path d="M8 36h48v14H8zM16 36l-4-20M48 36l4-20M16 43h3M24 43h3M32 43h3"/>')],
+  ['charger', 'Ladestation', DI('<path d="M20 6h24v52H20zM34 20l-6 11h8l-6 11"/>')],
+  ['printer', 'Drucker', DI('<path d="M14 24h36v20H14zM22 24V8h20v16M22 36h20v20H22zM42 30h2"/>')],
+  ['plant', 'Pflanzenlicht', DI('<path d="M20 40h24l-4 16H24zM32 40V24M32 30c-8 0-12-6-12-12 8 0 12 6 12 12M32 26c6 0 10-4 10-10-6 0-10 4-10 10"/>')],
+  ['tree', 'Weihnachtsbaum', DI('<path d="M32 4l12 16h-6l10 14h-8l10 14H14l10-14h-8l10-14h-6zM32 48v10"/>')],
+];
+// eigenes Symbol, sonst am Namen erraten, sonst die Steckdose
+const GUESS = [[/lamp|licht|leuchte/, 'lamp'], [/mirror|spiegel/, 'mirror'], [/\btv\b|fernseh/, 'tv'], [/bildschirm|monitor/, 'monitor'], [/\bpc\b|computer|rechner/, 'pc'],
+  [/schreibtisch|büro|arbeit/, 'desk'], [/kaffee|espresso/, 'coffee'], [/wasserkocher/, 'kettle'], [/ventilator/, 'fan'], [/heiz|radiator/, 'heater'],
+  [/wasch/, 'washer'], [/kühl/, 'fridge'], [/router|wlan|wifi/, 'router'], [/ladestation|ladeger/, 'charger'], [/drucker/, 'printer'], [/pflanz/, 'plant'],
+  [/weihnacht|tannenbaum/, 'tree'], [/lautsprecher|sonos/, 'speaker']];
+function iconKey(d) {
+  if (d.cfg.icon && DEV_ICONS.some(([k]) => k === d.cfg.icon)) return d.cfg.icon;
+  const n = d.name.toLowerCase();
+  return GUESS.find(([re]) => re.test(n))?.[1] || 'plug';
+}
+const devIcon = (d) => DEV_ICONS.find(([k]) => k === iconKey(d))[2] || I.plug;
+const iconName = (d) => DEV_ICONS.find(([k]) => k === iconKey(d))[1];
 const roomIcon = (r) => ROOM_ICON[ROOMS.find(([n]) => n === r)?.[1]] || ROOM_ICON.sofa;
 const WD = [[1, 'Mo'], [2, 'Di'], [3, 'Mi'], [4, 'Do'], [5, 'Fr'], [6, 'Sa'], [0, 'So']];
 function daysText(days) {
@@ -191,7 +227,7 @@ function show() {
   ghost?.remove(); ghost = null;
   if (dir && !reduced && S) {
     ghost = document.createElement('div');
-    ghost.className = 'pageghost';
+    ghost.className = 'page-copy';
     const inner = app.cloneNode(true); inner.removeAttribute('id'); inner.removeAttribute('aria-live');
     ghost.append(inner);
     document.body.append(ghost);
@@ -236,83 +272,31 @@ const master = (d, k, label = 'Aktiv') => `<div class="row master"><span class="
 const val = (t) => `<span class="val">${t}</span>`;
 const chev = (t = '') => `<span class="val">${t} ›</span>`;
 
-// ---------- Bausteine der Oberfläche ----------
-// schlanke Linien-Symbole (24 px)
-const L = (d, w = 22) => `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
-const Q = {
-  power: L('<path d="M12 3v9M6.3 6.8a8 8 0 1 0 11.4 0"/>', 18), moon: L('<path d="M19 14.5A7.5 7.5 0 0 1 9.5 5 7.5 7.5 0 1 0 19 14.5z"/>'),
-  clock: L('<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>'), plane: L('<path d="M10 14 3 12l1-2 7 1 4-6h2l-2 7 5 1 1 2-6 1-2 6h-2z"/>'),
-  timer: L('<path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/>'), leaf: L('<path d="M5 19C4 10 10 4 20 4c0 10-6 15-15 15zM5 19l8-8"/>'),
-  sun: L('<path d="M7 17a5 5 0 0 1 10 0M3 17h18M5 20h14M12 6v3M6 9l1.5 1.5M18 9l-1.5 1.5"/>'), temp: L('<path d="M10 5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0z"/><path d="M12 9v7"/>'),
-  bell: L('<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/>'), shield: L('<path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6z"/>'),
-  rules: L('<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>'), sliders: L('<path d="M5 7h14M5 17h14"/><circle cx="9" cy="7" r="2.2" fill="currentColor"/><circle cx="15" cy="17" r="2.2" fill="currentColor"/>'),
-  scenes: L('<path d="m12 3 9 9-9 9-9-9z"/><path d="m12 8 4 4-4 4-4-4z"/>'), gear: L('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>', 18),
-  plus: L('<path d="M12 5v14M5 12h14"/>', 18), lock: L('<rect x="6" y="11" width="12" height="9" rx="2"/><path d="M9 11V8a3 3 0 0 1 6 0v3"/>', 14),
-};
-// die Steckdose als Bild; LED grün = an, rot = aus, grau = offline
-const socket = (on, h, online = true) => `<svg class="sock" viewBox="0 0 120 160" width="${Math.round(h * 0.75)}" height="${h}" aria-hidden="true">
-  <defs><linearGradient id="sb${h}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2c2f33"/><stop offset="1" stop-color="#121315"/></linearGradient>
-  <radialGradient id="sf${h}" cx=".5" cy=".4" r=".6"><stop offset="0" stop-color="#1e2023"/><stop offset="1" stop-color="#0c0d0f"/></radialGradient></defs>
-  <rect x="14" y="6" width="92" height="148" rx="40" fill="url(#sb${h})" stroke="rgb(255 255 255 / .09)"/>
-  <circle cx="60" cy="62" r="28" fill="url(#sf${h})" stroke="rgb(255 255 255 / .06)"/>
-  <circle cx="50" cy="58" r="4.4" fill="#040404"/><circle cx="70" cy="58" r="4.4" fill="#040404"/><circle cx="60" cy="72" r="4.4" fill="#040404"/>
-  <rect class="sled" x="44" y="126" width="32" height="5" rx="2.5" fill="${!online ? '#34373b' : on ? '#4ade80' : '#f87171'}"/></svg>`;
-// kurzer Zustand für Kacheln, ohne Wiederholung
-function shortOf(d) {
-  if (!d.online) return 'offline';
-  if (d.relay) return `${pw(d.w)}${/wartet/.test(d.status) ? ' · wartet' : /aus in/.test(d.status) ? ' · gleich aus' : /Timer/.test(d.status) ? ' · Timer' : ''}`;
-  return d.status.startsWith('Aus · Ferien') ? d.status : 'Aus';
-}
-const AUTOS = [['idle', 'moon', 'Nachts aus'], ['schedule', 'clock', 'Zeitplan'], ['vacation', 'plane', 'Ferien'], ['timer', 'timer', 'Timer'],
-  ['saver', 'leaf', 'Sparen'], ['sun', 'sun', 'Sonne'], ['temp', 'temp', 'Temperatur'], ['alarms', 'bell', 'Alarme']];
-const QUICK = [['idle', 'moon', 'Nachts aus'], ['timer', 'timer', 'Timer'], ['saver', 'leaf', 'Sparen'], ['vacation', 'plane', 'Ferien']];
-const tileQ = (attrs, icon, label, sub, on) => `<button type="button" class="qt ${on ? 'on' : ''}" ${attrs}><i>${icon}</i><b>${label}</b><small>${sub}</small></button>`;
-const FREE = '<p class="note free">Alle Funktionen sind frei, auch die, für die myStrom PLUS oder PRO verlangt.</p>';
+// Statuszeile unter dem Namen, ohne die Leistung, die schon gross darüber steht
+const subOf = (d) => (!d.online ? d.status : d.relay ? d.status.replace(/^[\d.,]+ k?W( · )?/, '') : d.status === 'Aus' ? '' : d.status.replace(/^Aus · /, ''));
 
-// ---------- Zuhause ----------
+// ---------- Startseite ----------
 function homeHTML() {
-  const on = S.devices.filter((d) => d.relay).length, total = S.devices.reduce((a, d) => a + d.w, 0), todayWh = S.devices.reduce((a, d) => a + d.todayWh, 0);
-  const guardOn = S.devices.filter((d) => d.cfg.vacation.on), rulesOn = S.devices.reduce((a, d) => a + AUTOS.filter(([k]) => k !== 'alarms' && featInfo(d, k)[0]).length, 0);
-  const devTile = (d, wide) => `<div class="dt ${d.relay ? 'on' : ''} ${d.online ? '' : 'offline'} ${wide ? 'wide' : ''}">
-    <button type="button" class="open" data-go="dev/${d.mac}" aria-label="${esc(d.name)} öffnen"></button>
-    ${socket(d.relay, 40, d.online)}<button type="button" class="pw ${d.relay ? 'on' : ''}" data-pwr="${d.mac}" aria-pressed="${d.relay}" aria-label="${esc(d.name)} ${d.relay ? 'ausschalten' : 'einschalten'}">${d.cfg.lock ? Q.lock : Q.power}</button>
-    <b>${esc(d.name)}</b><small>${esc(shortOf(d))}</small></div>`;
-  return `<i class="amb ${on ? 'on' : ''}"></i>
-    <header class="top"><span class="logo"><i></i>myStrom</span><span></span><span class="acts"><button type="button" class="rb" data-go="add" aria-label="Steckdose hinzufügen">${Q.plus}</button><button type="button" class="rb" data-go="more" aria-label="Mehr">${Q.gear}</button></span></header>
-    <h1>Zuhause</h1><p class="h1s">${S.devices.length ? `${on} von ${S.devices.length} Steckdose${S.devices.length > 1 ? 'n' : ''} an` : 'Noch keine Steckdose gefunden'}</p>
-    ${S.devices.length ? `<p class="sec">Steckdosen</p><div class="qg">${S.devices.map((d, i) => devTile(d, i === 0 && S.devices.length % 2 === 1)).join('')}</div>`
-      : `<button type="button" class="card cta" data-go="add"><b>Steckdose hinzufügen</b><small>Die App sucht im WLAN, oder du gibst die IP ein.</small></button>`}
-    <p class="sec">Szenen <button type="button" class="seclink" data-go="scenes">Bearbeiten</button></p>
-    <div class="qg three">${S.scenes.map((sc) => { const n = Object.keys(sc.actions).length; return tileQ(`data-run="${sc.id}"`, /nacht|aus/i.test(sc.name) ? Q.moon : Q.scenes, esc(sc.name), n ? `${n} Steckdose${n > 1 ? 'n' : ''}` : 'alles aus', false); }).join('')}
-      <button type="button" class="qt add" data-newscene="1"><i>${Q.plus}</i><b>Neu</b><small>Szene</small></button></div>
-    <p class="sec">Verbrauch</p>
-    <button type="button" class="card sum" data-go="energy"><span class="sl">Heute, alle Steckdosen</span><b>${kwh(todayWh)}<small>kWh</small></b>
-      <div class="spark" data-spark="all|${S.today}" data-keep="all|${S.today}|${Math.floor(S.now / 300e3)}"></div><span class="sl">CHF ${chf(todayWh)} · jetzt ${pw(total)}<i class="chev"></i></span></button>
-    <p class="sec">Für alle Steckdosen</p>
-    <div class="qg four">${tileQ('data-go="guard"', Q.shield, 'Home Guard', guardOn.length ? `${guardOn.length} in Ferien` : 'Aus', guardOn.length > 0)}
-      ${tileQ('data-go="rules"', Q.rules, 'Regeln', rulesOn ? `${rulesOn} aktiv` : 'keine', rulesOn > 0)}
-      ${tileQ('data-go="alarms"', Q.bell, 'Alarme', S.pushSubs ? 'Mitteilungen an' : 'Aus', S.pushSubs > 0)}
-      ${tileQ('data-go="more"', Q.sliders, 'Mehr', 'Preis, Standort', false)}</div>${FREE}`;
-}
-
-// ---------- Gerät im Fokus ----------
-function deviceHTML(d) {
-  const [v, u] = pwN(d.relay ? d.w : 0), st = !d.online ? d.status : d.relay ? d.status.replace(/^[\d.,]+ k?W( · )?/, '') : d.status === 'Aus' ? '' : d.status.replace(/^Aus · /, '');
-  return `<i class="amb ${d.relay ? 'on' : ''}"></i>
-    <header class="top"><button type="button" class="rb" data-back="home" aria-label="Zuhause">‹</button>
-      <button type="button" class="dpick" data-devpick="${d.mac}" aria-haspopup="dialog">${esc(d.name)}<i class="dn"></i></button>
-      <button type="button" class="rb end" data-go="dev/${d.mac}/settings" aria-label="Einstellungen">${Q.gear}</button></header>
-    <div class="stage ${d.online ? (d.relay ? 'on' : 'off') : 'offline'}"><button type="button" class="hit" data-pwr="${d.mac}" aria-pressed="${d.relay}" aria-label="${esc(d.name)} ${d.relay ? 'ausschalten' : 'einschalten'}"></button>
-      ${d.temp != null ? `<span class="chipt">${d.temp.toFixed(1)} °C</span>` : ''}${d.cfg.lock ? `<span class="chipt lockt">${Q.lock} gesperrt</span>` : ''}${socket(d.relay, 112, d.online)}</div>
-    <div class="bigw">${d.relay ? `${v}<small>${u}</small>` : d.online ? 'Aus' : 'Offline'}</div>
-    ${st ? `<p class="st"><i class="led ${d.relay ? (d.lowSince ? 'warn' : 'on') : ''}"></i>${esc(st)}</p>` : ''}
-    <p class="stsub">${kwh(d.todayWh)} kWh heute</p>
-    <div class="qa">${QUICK.map(([k, ic, l]) => `<button type="button" class="${d.cfg[k].on ? 'on' : ''}" data-qa="${d.mac}|${k}" aria-pressed="${d.cfg[k].on}"><i>${Q[ic]}</i><span>${l}</span></button>`).join('')}</div>
-    <button type="button" class="card today" data-go="dev/${d.mac}/eval"><span class="tl"><b>Heute</b><i class="chev"></i></span>
-      <div class="spark" data-spark="${d.mac}|${S.today}" data-keep="${d.mac}|${S.today}|${Math.floor(S.now / 300e3)}"></div>
-      <span class="ts" data-sparkstats="${d.mac}" data-keep="${d.mac}|${Math.floor(S.now / 300e3)}"><span>Höchstwert<b>–</b></span><span>Durchschnitt<b>–</b></span><span>Kosten<b>–</b></span></span></button>
-    <p class="sec">Automationen</p>
-    <div class="qg four">${AUTOS.map(([k, ic, l]) => { const [on, txt] = featInfo(d, k); return tileQ(`data-go="dev/${d.mac}/${k}"`, Q[ic], l, on ? esc(txt) : 'Aus', on); }).join('')}</div>${FREE}`;
+  const hint = !store.get('swiped') && S.devices.length ? '<p class="hint">Kachel nach links oder rechts wischen schaltet · antippen öffnet die Funktionen</p>' : '';
+  const tile = (h, icon, label, sub = '') => `<button type="button" class="tile" data-go="${h}"><span class="ico">${icon}</span><span class="lb">${label}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</button>`;
+  const guardOn = S.devices.filter((d) => d.cfg.vacation.on).length;
+  const rulesOn = S.devices.reduce((a, d) => a + FEAT.filter(([k]) => k !== 'eval' && k !== 'alarms' && featInfo(d, k)[0]).length, 0);
+  const total = S.devices.reduce((a, d) => a + d.w, 0);
+  return `<header class="hd"><span></span><b>myStrom</b><span class="acts"><button type="button" class="ic" data-go="add" aria-label="Steckdose hinzufügen">＋</button><button type="button" class="ic" data-go="more" aria-label="Mehr">${I.menu}</button></span></header>
+    <div class="grid">
+      ${S.devices.map((d) => `<div class="tile dev ${d.relay ? 'on' : ''} ${d.online ? '' : 'off-line'}" data-mac="${d.mac}">
+        <div class="face">${d.temp != null ? `<span class="tmp">${d.temp.toFixed(1)}°C</span>` : ''}${d.cfg.lock ? '<span class="lock" title="Tastensperre">🔒</span>' : ''}
+        <span class="ico">${devIcon(d)}</span><span class="lb">${d.relay ? `${pw(d.w)}<br>` : ''}${esc(d.name)}</span>
+        ${subOf(d) ? `<span class="sub">${esc(subOf(d))}</span>` : ''}
+        <span class="more" aria-hidden="true">›</span></div>
+        <button type="button" class="hit" data-swipe="${d.mac}" aria-label="${esc(d.name)}, ${d.relay ? 'an' : 'aus'}. Öffnen; Wischen oder Leertaste schaltet"></button></div>`).join('')}
+      ${tile('energy', I.bolt, `${pw(total)}<br>Verbrauch`)}
+      ${tile('scenes', I.scenes, 'Szenen')}
+      ${tile('guard', I.guard, 'Home Guard', guardOn ? `${guardOn} in Ferien` : '')}
+      ${tile('rules', I.rules, 'Regeln', rulesOn ? `${rulesOn} aktiv` : '')}
+      ${tile('alarms', I.bell, 'Alarme')}
+      ${S.devices.length ? '' : tile('more', I.plug, 'Steckdose hinzufügen')}
+    </div>${hint}`;
 }
 
 // ---------- Hinzufügen ----------
@@ -321,8 +305,19 @@ function addHTML() {
     <p class="sec">Per IP hinzufügen</p><div class="ls">${lrow('IP-Adresse', '<input type="text" id="addip" placeholder="192.168.0.42" inputmode="decimal" autocomplete="off">', 'nur nötig, wenn sie sich nicht meldet')}</div>
     <p class="sec">Bereits eingerichtet</p><div class="ls">${S.devices.map((d) => row(esc(d.name), chev(esc(d.ip)), `${esc(d.typeName)} · ${d.online ? 'erreichbar' : 'offline'}`, `data-go="dev/${d.mac}/settings"`)).join('') || row('Noch keine', '')}</div>`;
 }
+
+// ---------- Gerät ----------
+function deviceHTML(d) {
+  return HD(esc(d.name), 'home', `<button type="button" class="ic" data-go="dev/${d.mac}/settings" aria-label="Einstellungen">${I.gear}</button>`, esc(d.cfg.room))
+    + `<div class="grid">
+      <div class="tile dev ${d.relay ? 'on' : ''} ${d.online ? '' : 'off-line'}">
+        <div class="face"><span class="ico">${I.toggle(d.relay)}</span><span class="lb">${d.relay ? `${pw(d.w)} · An` : 'Aus'}</span>${subOf(d) ? `<span class="sub">${esc(subOf(d))}</span>` : ''}</div>
+        <button type="button" class="hit" data-swipe="${d.mac}" data-inpage="1" aria-label="${esc(d.name)} ${d.relay ? 'ausschalten' : 'einschalten'}"></button></div>
+      ${FEAT.map(([k, ic, l]) => { const [on, txt] = featInfo(d, k); return `<button type="button" class="tile feat ${on ? 'act' : ''}" data-go="dev/${d.mac}/${k}"><span class="ico">${I[ic]}</span><span class="lb">${l}</span><span class="sub">${on || k === 'eval' ? esc(txt) : 'aus'}</span></button>`; }).join('')}
+    </div>`;
+}
 function featureHTML(d, k) {
-  const c = d.cfg, back = k === 'tech' || k === 'room' ? `dev/${d.mac}/settings` : `dev/${d.mac}`; // roomnew hat eigenes Zurück
+  const c = d.cfg, back = k === 'tech' || k === 'room' || k === 'icon' ? `dev/${d.mac}/settings` : `dev/${d.mac}`; // roomnew hat eigenes Zurück
   const head = HD(FTITLE[k], back, '<span></span>', esc(d.name));
   const dim = (on) => (on ? 'ls' : 'ls dim');
   switch (k) {
@@ -370,9 +365,10 @@ function featureHTML(d, k) {
       <div class="ls">${[['offline', 'Offline', 'keine Antwort seit 3 Minuten'], ['unusual', 'Ungewöhnlicher Verbrauch', 'deutlich mehr als sonst'], ['switchedOn', 'Eingeschaltet', 'am Gerät oder von einer Regel'], ['hot', 'Zu warm', `über ${c.temp.on ? c.temp.max : 45} °C`]]
         .map(([key, l, sub]) => `<div class="row"><span class="tx"><b>${l}</b><span>${sub}</span></span>${sw(`alarms.${key}`, c.alarms[key], l)}</div>`).join('')}</div>`;
     case 'eval': return head + chartHTML(d.mac, false) + totalsHTML(d.mac);
-    case 'settings': return HD('Einstellungen', `dev/${d.mac}`) + `<div class="hero">${socket(d.relay, 72, d.online)}<b>${esc(d.name)}</b><small>${esc(d.typeName)}${d.cfg.room ? ` · ${esc(d.cfg.room)}` : ''}</small></div>
+    case 'settings': return HD('Einstellungen', `dev/${d.mac}`) + `<div class="hero">${devIcon(d)}<b>${esc(d.name)}</b></div>
       <div class="ls">${lrow('Name', `<input type="text" data-in="name" value="${esc(d.cfg.name)}" placeholder="${esc(d.name)}" maxlength="40">`)}
         ${row('Raum', chev(esc(d.cfg.room || 'keiner')), '', `data-go="dev/${d.mac}/room"`)}
+        ${row('Symbol', chev(esc(iconName(d))), '', `data-go="dev/${d.mac}/icon"`)}
         ${lrow('Temperatur-Korrektur', inp('tcorr', 'number', c.tcorr, 'step="0.5" min="-10" max="10"'), '°C, wird zur Messung addiert')}
         ${row('Technische Details', chev(), '', `data-go="dev/${d.mac}/tech"`)}</div>
       <div class="ls"><div class="row"><span class="tx"><b>Solar / Stromproduktion</b><span>misst Produktion statt Verbrauch</span></span>${sw('solar', c.solar, 'Solar')}</div>
@@ -390,6 +386,13 @@ function featureHTML(d, k) {
         <button type="button" class="tile room" data-go="dev/${d.mac}/roomnew"><span class="ico">${ROOM_ICON.plus}</span><span class="lb">Eigener Raum</span></button>
         ${tileR('', ROOM_ICON.none, 'Kein Raum', false)}
       </div>`;
+    }
+    case 'icon': {
+      // wie die Raum-Auswahl: Kacheln, gewähltes abgedunkelt mit Häkchen; Antippen wählt und geht zurück
+      const curKey = iconKey(d);
+      return HD('Symbol wählen', back) + `<div class="grid">${DEV_ICONS.map(([k, l, svg]) => `<button type="button" class="tile room ${curKey === k ? 'sel' : ''}" data-icon="${k}" aria-pressed="${curKey === k}">
+        <span class="ico">${svg || I.plug}${curKey === k ? '<span class="chk" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 12 4 4 8-8"/></svg></span>' : ''}</span>
+        <span class="lb">${l}</span></button>`).join('')}</div>`;
     }
     case 'roomnew': return HD('Eigener Raum', `dev/${d.mac}/room`) + `<p class="intro">Wie soll der Raum heissen?</p>
       <div class="ls">${lrow('Name', '<input type="text" data-roomnew="1" placeholder="z. B. Werkstatt" maxlength="40" enterkeyhint="done" autocomplete="off" style="background:#2a2a2a;color:var(--fg);padding:7px 9px;text-align:left;max-width:200px">')}</div>
@@ -435,7 +438,7 @@ function chartHTML(mac, pick) {
   const m = pick ? view.mac : mac, d = m === 'all' ? null : dev(m);
   const now = m === 'all' ? S.devices.reduce((a, x) => a + x.w, 0) : d.w, [v, u] = pwN(now);
   return `<div class="big"><b>${v}<small> ${u}</small></b><span>Verbrauch jetzt</span></div>
-    <div class="nav"><button type="button" class="devsel" ${pick ? 'data-devsel="1"' : 'disabled'}>${esc(m === 'all' ? 'Alle Geräte' : d.name)}${pick ? '<i class="dn"></i>' : ''}</button>
+    <div class="nav"><button type="button" class="devsel" ${pick ? 'data-devsel="1"' : 'disabled'}>${esc(m === 'all' ? 'Alle Geräte' : d.name)}${pick ? ' ▾' : ''}</button>
       <span class="date">${dayLabel(view.day)}</span><button type="button" class="arr" data-dayshift="-1" aria-label="Tag zurück">‹</button><button type="button" class="arr" data-dayshift="1" aria-label="Tag vor" ${view.day >= S.today ? 'disabled' : ''}>›</button></div>
     <div class="chart" data-chart="${m}|${view.day}" data-keep="${m}|${view.day}|${view.day === S.today ? Math.floor(S.now / 60e3) : ''}"><div class="empty">Lädt …</div></div>
     <div class="foot" data-foot data-keep="${m}|${view.day}|${view.day === S.today ? Math.floor(S.now / 60e3) : ''}"><div><b>–<small> kWh</small></b><span>Verbrauch</span></div><i></i><div><b>–<small> CHF</small></b><span>Kosten</span></div></div>`;
@@ -455,21 +458,6 @@ async function fillCharts() {
       chartTip(el, c);
     } catch (e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
   }
-  for (const el of document.querySelectorAll('[data-spark]:not([data-filled])')) {
-    const [m, day] = el.dataset.spark.split('|');
-    el.dataset.filled = el.dataset.keep;
-    try {
-      const c = await curve(m, day);
-      if (!el.isConnected) return;
-      el.innerHTML = sparkSVG(c);
-      const stats = m !== 'all' && $(`[data-sparkstats="${m}"]`), d = dev(m);
-      if (stats && d) {
-        stats.dataset.filled = stats.dataset.keep;
-        const vals = c.w.filter((x) => x != null), avg = vals.length ? vals.reduce((a, x) => a + x, 0) / vals.length : 0;
-        stats.innerHTML = `<span>Höchstwert<b>${pw(Math.max(c.max, d.relay ? d.w : 0))}</b></span><span>Durchschnitt<b>${pw(avg)}</b></span><span>Kosten<b>CHF ${chf(c.wh)}</b></span>`;
-      }
-    } catch { el.innerHTML = ''; }
-  }
   for (const el of document.querySelectorAll('[data-totals]:not([data-filled])')) {
     el.dataset.filled = el.dataset.keep;
     try {
@@ -479,17 +467,6 @@ async function fillCharts() {
         .map(([l, wh]) => row(l, val(`${kwh(wh)} kWh · CHF ${chf(wh)}`))).join('');
     } catch { /* bleibt leer */ }
   }
-}
-// Tageskurve klein, ohne Achsen (Startseite und Gerät)
-function sparkSVG(c) {
-  const pts = [], full = c.w.length, nowI = c.day === S.today ? Math.ceil((S.now - new Date(`${c.day}T00:00:00`).getTime()) / 300e3) : full, n = Math.max(12, Math.min(full, nowI));
-  const step = c.w.slice(0, n).filter((x) => x != null).length > 40 ? 3 : 1;
-  for (let i = 0; i < n; i += step) { const sl = c.w.slice(i, i + step).filter((x) => x != null); if (sl.length) pts.push([i, sl.reduce((a, x) => a + x, 0) / sl.length]); }
-  if (pts.length < 2) return '<span class="nodata">Noch keine Messwerte heute</span>';
-  const i0 = pts[0][0], max = Math.max(1, ...pts.map((q) => q[1])), x = (i) => ((i - i0) / Math.max(1, pts[pts.length - 1][0] - i0) * 300).toFixed(1), // ab der ersten Messung des Tages
-    y = (w) => (46 - w / max * 40).toFixed(1), line = pts.map(([i, w]) => `${x(i)},${y(w)}`).join(' L');
-  return `<svg viewBox="0 0 300 48" width="100%" height="48" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4ade80" stop-opacity=".28"/><stop offset="1" stop-color="#4ade80" stop-opacity="0"/></linearGradient></defs>
-    <path d="M${x(pts[0][0])},48 L${line} L${x(pts[pts.length - 1][0])},48Z" fill="url(#spg)"/><path d="M${line}" fill="none" stroke="#4ade80" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
 }
 // Finger oder Maus übers Diagramm: Uhrzeit und Leistung an dieser Stelle
 function chartTip(el, c) {
@@ -506,6 +483,17 @@ function chartTip(el, c) {
   const hide = () => { cur?.setAttribute('visibility', 'hidden'); tip?.remove(); tip = null; };
   svg.addEventListener('pointermove', show); svg.addEventListener('pointerdown', show); svg.addEventListener('pointerleave', hide);
 }
+// Gerät für den Verbrauch wählen: Overlay von unten mit Kacheln wie auf der Startseite, gewähltes abgedunkelt mit Häkchen
+function devPickTiles() {
+  const chk = '<span class="chk" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 12 4 4 8-8"/></svg></span>';
+  const t = (v, on, icon, label, sub, tmp = '') => `<button type="button" class="tile room ${on ? 'on' : ''} ${view.mac === v ? 'sel' : ''}" data-pickdev="${v}" aria-pressed="${view.mac === v}">
+    ${tmp}<span class="ico">${icon}${view.mac === v ? chk : ''}</span><span class="lb">${label}</span><span class="sub">${sub}</span></button>`;
+  const total = S.devices.reduce((a, d) => a + d.w, 0), totalWh = S.devices.reduce((a, d) => a + d.todayWh, 0);
+  return `<div class="grid">
+    ${t('all', false, I.bolt, `${pw(total)}<br>Alle Geräte`, `${kwh(totalWh)} kWh heute`)}
+    ${S.devices.map((d) => t(d.mac, d.relay, devIcon(d), `${d.relay ? `${pw(d.w)}<br>` : ''}${esc(d.name)}`, `${kwh(d.todayWh)} kWh heute`, d.temp != null ? `<span class="tmp">${d.temp.toFixed(1)}°C</span>` : '')).join('')}
+  </div>`;
+}
 function energyHTML() {
   const m = view.mac, month = (view.day || S.today).slice(0, 7);
   return HD('Verbrauch', 'home') + chartHTML(m, true) + totalsHTML(m)
@@ -518,9 +506,10 @@ const lastOfMonth = (ym) => { const [y, m] = ym.split('-').map(Number); return `
 // ---------- Szenen ----------
 function scenesHTML() {
   return HD('Szenen', 'home') + '<p class="intro">Mehrere Steckdosen mit einem Tipp schalten.</p>'
-    + `<div class="ls">${S.scenes.map((s) => { const n = Object.keys(s.actions).length; return `<div class="row"><button type="button" class="tx" data-go="scene/${s.id}" style="text-align:left;flex:1"><b>${esc(s.name)}</b><span>${n ? Object.entries(s.actions).map(([mac, a]) => `${esc(dev(mac)?.name || '?')} ${a === 'on' ? 'an' : 'aus'}`).join(', ') : 'alle Steckdosen aus'}</span></button>
+    + `<div class="ls">${S.scenes.map((s) => { const n = Object.keys(s.actions).length; return `<div class="row" data-hold="${s.id}"><button type="button" class="tx" data-go="scene/${s.id}" style="text-align:left;flex:1"><b>${esc(s.name)}</b><span>${n ? Object.entries(s.actions).map(([mac, a]) => `${esc(dev(mac)?.name || '?')} ${a === 'on' ? 'an' : 'aus'}`).join(', ') : 'alle Steckdosen aus'}</span></button>
       <button type="button" class="chip" data-run="${s.id}" aria-label="${esc(s.name)} ausführen">Ausführen</button></div>`; }).join('')}</div>
-    <button type="button" class="btn ghost" data-newscene="1">Neue Szene</button>`;
+    <button type="button" class="btn ghost" data-newscene="1">Neue Szene</button>
+    <p class="note" style="text-align:center">Lange auf eine Szene drücken: ausführen, bearbeiten oder löschen.</p>`;
 }
 function sceneHTML(id) {
   const s = S.scenes.find((x) => x.id === id);
@@ -575,6 +564,7 @@ function moreHTML() {
 }
 
 // ---------- Zeichnen ----------
+let swipe = null;
 // Bestehende Knoten an das neue HTML angleichen statt alles zu ersetzen: kein Flackern, Fokus und Diagramme bleiben.
 // Elemente mit data-keep behalten ihren Inhalt, solange der Schlüssel gleich ist (Diagramm, Summen, Verlauf).
 function morph(a, b) {
@@ -593,7 +583,7 @@ function morph(a, b) {
   for (let i = bc.length; i < ac.length; i++) if (!ac[i].dataset?.transient) ac[i].remove();
 }
 function render(fresh = false) {
-  if (!S) return;
+  if (!S || swipe) return;
   const [r0, r1, r2] = route(), d = r0 === 'dev' ? dev(r1) : null;
   let html;
   if (r0 === 'dev') html = !d ? `${HD('Steckdose', 'home')}<p class="empty-state">Diese Steckdose gibt es nicht mehr.</p>` : r2 ? featureHTML(d, r2) : deviceHTML(d);
@@ -604,47 +594,149 @@ function render(fresh = false) {
   if (r0 === 'alarms' && !events) api('api/events?n=40').then((e) => { events = e; const el = $('[data-events]'); if (el) el.innerHTML = eventsHTML(); });
 }
 
-// Auswahl-Blatt von unten (Gerät wählen)
-function pickSheet(title, options, current, onPick) {
+// ---------- Wischen auf den Kacheln: wie zur nächsten Seite blättern ----------
+// Die aktuelle Kachel schiebt sich mit dem Finger hinaus, von der anderen Seite kommt die nächste:
+// grün „AN“ oder rot „AUS“. Über die halbe Breite rastet sie ein und schaltet, sonst federt sie zurück.
+const POWER = '<svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v9M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>';
+let swiped = 0;
+function nextPanel(tile, on, name) {
+  let n = tile.querySelector('.next');
+  if (!n) { n = document.createElement('div'); n.className = 'next'; n.dataset.transient = '1'; tile.append(n); }
+  n.classList.toggle('to-on', on); n.classList.toggle('to-off', !on);
+  n.innerHTML = `${POWER}<b>${on ? 'AN' : 'AUS'}</b><span>${esc(name)}</span>`;
+  return n;
+}
+// Seite und Gegenstück an die Fingerposition setzen (x in px, positiv = nach rechts)
+function place(tile, x, animate) {
+  const face = tile.querySelector('.face'), n = tile.querySelector('.next'), w = tile.offsetWidth, t = animate ? 'transform .22s cubic-bezier(.2,.8,.2,1)' : 'none';
+  face.style.transition = t; face.style.transform = x ? `translateX(${x}px)` : '';
+  if (n) { n.style.transition = t; n.style.transform = `translateX(${x - Math.sign(x || 1) * w}px)`; }
+}
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+// fertig blättern, die neue Seite kurz zeigen, dann schalten und in die normale Kachel übergehen
+async function flip(tile, d, sign) {
+  const w = tile.offsetWidth;
+  nextPanel(tile, !d.relay, d.name);
+  if (!tile.querySelector('.next').style.transform) place(tile, 0.001 * sign, false); // Start ausserhalb, falls per Tippen
+  await wait(20);
+  place(tile, sign * w, true);
+  await wait(420);
+  const n = tile.querySelector('.next'), face = tile.querySelector('.face');
+  face.style.transition = 'none'; face.style.transform = '';
+  swipe = null;
+  const ok = await switchDev(d.mac, !d.relay);
+  if (n) { n.style.transition = 'opacity .25s'; n.style.opacity = ok ? '0' : '0'; await wait(260); n.remove(); }
+  if (!ok) shake(tile);
+}
+app.addEventListener('pointerdown', (e) => {
+  const b = e.target.closest('[data-swipe]'); if (!b || swipe) return;
+  swipe = { b, tile: b.closest('.tile'), x: e.clientX, y: e.clientY, dx: 0, id: e.pointerId, live: false };
+});
+// Sicherheitsnetz: bleibt ein Wischen hängen (z. B. Finger verlässt das Fenster), nach 3 s freigeben
+setInterval(() => { if (swipe && !swipe.busy && !document.querySelector(':active')) { place(swipe.tile, 0, false); swipe.tile.querySelector('.next')?.remove(); swipe = null; } }, 3000);
+app.addEventListener('pointermove', (e) => {
+  if (!swipe || swipe.busy || e.pointerId !== swipe.id) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+  if (!swipe.live) {
+    if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { swipe = null; return; } // senkrecht = scrollen
+    if (Math.abs(dx) < 8) return;
+    swipe.live = true;
+    const d = dev(swipe.b.dataset.swipe);
+    swipe.blocked = d.cfg.lock || !d.online;
+    if (!swipe.blocked) nextPanel(swipe.tile, !d.relay, d.name);
+  }
+  // gesperrt oder offline: nur ein kurzes, gebremstes Mitgehen
+  swipe.dx = swipe.blocked ? Math.sign(dx) * Math.min(24, Math.abs(dx) / 4) : dx;
+  place(swipe.tile, swipe.dx, false);
+  const past = !swipe.blocked && Math.abs(swipe.dx) >= swipe.tile.offsetWidth * 0.4;
+  if (past !== !!swipe.past) { swipe.past = past; if (navigator.vibrate) navigator.vibrate(past ? 12 : 6); }
+});
+const endSwipe = () => {
+  if (!swipe || swipe.busy) return;
+  const s = swipe;
+  if (!s.live) { swipe = null; return; } // war ein Tippen
+  swiped = Date.now();
+  const d = dev(s.b.dataset.swipe), w = s.tile.offsetWidth;
+  if (s.blocked) { place(s.tile, 0, true); swipe = null; shake(s.tile); haptic([8, 60, 8]); toast(d.cfg.lock ? `${d.name}: Tastensperre ist an` : `${d.name} ist nicht erreichbar`, !d.cfg.lock); return; }
+  if (Math.abs(s.dx) >= w * 0.4) { s.busy = true; store.set('swiped', '1'); haptic(); flip(s.tile, d, Math.sign(s.dx)); }
+  else { s.busy = true; place(s.tile, 0, true); setTimeout(() => { s.tile.querySelector('.next')?.remove(); swipe = null; render(); }, 230); }
+};
+app.addEventListener('pointerup', endSwipe);
+app.addEventListener('pointercancel', endSwipe);
+addEventListener('pointerup', endSwipe); // auch ausserhalb der App losgelassen
+
+function tapFlip(el, d) {
+  const tile = el.closest('.tile');
+  if (d.cfg.lock || !d.online) { shake(tile); haptic([8, 60, 8]); toast(d.cfg.lock ? `${d.name}: Tastensperre ist an` : `${d.name} ist nicht erreichbar`, !d.cfg.lock); return; }
+  if (swipe) return;
+  swipe = { b: el, tile, busy: true, live: true, dx: 0 };
+  haptic();
+  flip(tile, d, d.relay ? -1 : 1); // aus: nach links weg, an: nach rechts
+}
+function openDevPick() {
+  document.querySelector('.pick')?.remove();
+  const el = document.createElement('div');
+  el.className = 'pick';
+  el.innerHTML = `<div class="pick-bg" data-close></div><div class="pick-sheet" role="dialog" aria-label="Gerät wählen">
+    <div class="pick-hd"><b>Gerät wählen</b><button type="button" data-close>Fertig</button></div>${devPickTiles()}</div>`;
+  const close = () => { el.classList.remove('open'); setTimeout(() => el.remove(), 300); };
+  el.addEventListener('click', (e) => {
+    const o = e.target.closest('[data-pickdev]');
+    if (o) { haptic(); view.mac = o.dataset.pickdev; el.querySelector('.grid').outerHTML = devPickTiles(); render(); setTimeout(close, 180); }
+    else if (e.target.closest('[data-close]')) close();
+  });
+  document.body.append(el);
+  requestAnimationFrame(() => el.classList.add('open'));
+  setTimeout(() => el.classList.add('open'), 60); // falls gerade kein Bild gezeichnet wird
+}
+// ---------- Szene lange drücken: Ausführen, Bearbeiten, Löschen ----------
+let hold = null, held = 0;
+app.addEventListener('pointerdown', (e) => {
+  const r = e.target.closest('[data-hold]'); if (!r) return;
+  clearTimeout(hold?.t);
+  r.classList.add('holding');
+  hold = { r, x: e.clientX, y: e.clientY, t: setTimeout(() => { r.classList.remove('holding'); hold = null; held = Date.now(); haptic(); sceneMenu(r.dataset.hold); }, 500) };
+});
+const holdEnd = () => { if (hold) { clearTimeout(hold.t); hold.r.classList.remove('holding'); hold = null; } };
+app.addEventListener('pointermove', (e) => { if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 10) holdEnd(); });
+app.addEventListener('pointerup', holdEnd);
+app.addEventListener('pointercancel', holdEnd);
+app.addEventListener('contextmenu', (e) => { if (e.target.closest('[data-hold]')) e.preventDefault(); });
+function actionSheet(title, items) {
   document.querySelector('.pick')?.remove();
   const el = document.createElement('div');
   el.className = 'pick';
   el.innerHTML = `<div class="pick-bg" data-close></div><div class="pick-sheet" role="dialog" aria-label="${esc(title)}"><p class="pick-t">${esc(title)}</p>
-    <div class="ls">${options.map(([v, l, sub]) => `<button type="button" class="row" data-v="${esc(v)}"><span class="tx"><b>${esc(l)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</span>${v === current ? '<span class="val" style="color:var(--acc);font-size:20px">✓</span>' : ''}</button>`).join('')}</div>
+    <div class="ls">${items.map(([l, , danger], i) => `<button type="button" class="row act ${danger ? 'danger' : ''}" data-i="${i}"><span class="tx"><b>${esc(l)}</b></span></button>`).join('')}</div>
     <button type="button" class="btn grey" data-close>Abbrechen</button></div>`;
-  const close = () => { el.classList.remove('open'); setTimeout(() => el.remove(), 260); };
-  el.addEventListener('click', (e) => {
-    const o = e.target.closest('[data-v]');
-    if (o) { haptic(); onPick(o.dataset.v); close(); } else if (e.target.closest('[data-close]')) close();
-  });
+  const close = () => { el.classList.remove('open'); setTimeout(() => el.remove(), 300); };
+  el.addEventListener('click', (e) => { const o = e.target.closest('[data-i]'); if (o) { close(); items[Number(o.dataset.i)][1](); } else if (e.target.closest('[data-close]')) close(); });
   document.body.append(el);
   requestAnimationFrame(() => el.classList.add('open'));
-  setTimeout(() => el.classList.add('open'), 50); // falls kein Bild gezeichnet wird
-  el.querySelector('[data-v]')?.focus({ preventScroll: true });
+  setTimeout(() => el.classList.add('open'), 60);
 }
-
-// ---------- Schalten per Tippen ----------
-async function tapSwitch(el, d) {
-  const box = el.closest('.dt, .stage') || el;
-  if (d.cfg.lock || !d.online) { shake(box); haptic([8, 60, 8]); toast(d.cfg.lock ? `${d.name}: Tastensperre ist an` : `${d.name} ist nicht erreichbar`, !d.cfg.lock); return; }
-  haptic();
-  if (!await switchDev(d.mac, !d.relay)) shake(box);
+function sceneMenu(id) {
+  const sc = S.scenes.find((x) => x.id === id); if (!sc) return;
+  actionSheet(sc.name, [
+    ['Ausführen', async () => { try { const r = await api(`api/scenes/${id}/run`, { method: 'POST' }); await load(); toast(r.ok ? 'Szene ausgeführt' : `Nicht erreicht: ${r.errors.join(', ')}`, !r.ok); } catch (x) { toast(x.message, true); } }],
+    ['Bearbeiten', () => go(`scene/${id}`)],
+    ['Löschen', async () => { S.scenes = S.scenes.filter((x) => x.id !== id); await saveScenes(); toast(`„${sc.name}“ gelöscht`); }, true],
+  ]);
 }
 // ---------- Klicks ----------
 app.addEventListener('click', async (e) => {
   const at = (s) => e.target.closest(s), [r0, r1] = route();
+  if (Date.now() - held < 700 && at('[data-hold]')) return; // nach langem Drücken nicht auch noch öffnen oder ausführen
   let el;
-  if ((el = at('[data-pwr]'))) tapSwitch(el, dev(el.dataset.pwr));
-  else if ((el = at('[data-devpick]'))) {
-    haptic();
-    pickSheet('Steckdose', S.devices.map((x) => [x.mac, x.name, x.status]), el.dataset.devpick, (mac) => {
-      if (mac === cur().split('/')[1]) return;
-      history.replaceState(null, '', `#dev/${mac}`); stack[stack.length - 1] = cur(); render(true); scrollTo(0, 0);
-    });
-  }
-  else if ((el = at('[data-qa]'))) { const [mac, k] = el.dataset.qa.split('|'); haptic(); saveCfg(mac, { [k]: { on: !dev(mac).cfg[k].on } }); }
-  else if ((el = at('[data-back]'))) back(el.dataset.back);
+  if ((el = at('[data-swipe]'))) {
+    if (Date.now() - swiped < 450) return;
+    const d = dev(el.dataset.swipe);
+    // Startseite: Tippen öffnet das Gerät. Geräteseite: die grosse Schalter-Kachel schaltet beim Tippen.
+    if (el.dataset.inpage) tapFlip(el, d);
+    else go(`dev/${d.mac}`);
+  } else if ((el = at('[data-back]'))) back(el.dataset.back);
   else if (at('[data-roomadd]')) { const i = $('[data-roomnew]'); if (i.value.trim()) { i.blur(); saveCfg(r1, { room: i.value.trim().slice(0, 40) }); setTimeout(() => back(`dev/${r1}/settings`), 180); } else i.focus(); }
+  else if ((el = at('[data-icon]'))) { haptic(); saveCfg(r1, { icon: el.dataset.icon }); setTimeout(() => back(`dev/${r1}/settings`), 180); }
   else if ((el = at('[data-room]'))) { haptic(); saveCfg(r1, { room: el.dataset.room }); setTimeout(() => back(`dev/${r1}/settings`), 180); }
   else if ((el = at('[data-go]'))) go(el.dataset.go);
   else if ((el = at('[data-sw]'))) {
@@ -656,11 +748,7 @@ app.addEventListener('click', async (e) => {
     const n = Number(el.dataset.day), days = dev(r1).cfg.schedule.days;
     saveCfg(r1, { schedule: { days: days.includes(n) ? days.filter((x) => x !== n) : [...days, n] } });
   } else if ((el = at('[data-dayshift]'))) { view.day = addDays(view.day, Number(el.dataset.dayshift)); if (view.day > S.today) view.day = S.today; render(); }
-  else if (at('[data-devsel]')) {
-    haptic();
-    pickSheet('Gerät', [['all', 'Alle Geräte', `${kwh(S.devices.reduce((a, d) => a + d.todayWh, 0))} kWh heute`], ...S.devices.map((d) => [d.mac, d.name, `${d.cfg.room ? `${d.cfg.room} · ` : ''}${kwh(d.todayWh)} kWh heute`])],
-      view.mac, (v) => { view.mac = v; render(); });
-  }
+  else if (at('[data-devsel]')) { haptic(); openDevPick(); }
   else if ((el = at('[data-run]'))) {
     el.disabled = true; haptic();
     try { const r = await api(`api/scenes/${el.dataset.run}/run`, { method: 'POST' }); await load(); toast(r.ok ? 'Szene ausgeführt' : `Nicht erreicht: ${r.errors.join(', ')}`, !r.ok); } catch (x) { toast(x.message, true); }
@@ -702,6 +790,9 @@ app.addEventListener('change', async (e) => {
 });
 app.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.matches('input')) e.target.blur();
+  // Tastatur: Leertaste schaltet die Steckdose, Enter öffnet sie (wie Tippen)
+  const sw = e.target.closest?.('[data-swipe]');
+  if (sw && e.key === ' ' && !sw.dataset.inpage) { e.preventDefault(); tapFlip(sw, dev(sw.dataset.swipe)); }
 });
 
 // ---------- Push ----------
