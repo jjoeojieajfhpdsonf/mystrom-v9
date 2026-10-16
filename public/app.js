@@ -313,7 +313,7 @@ function homeHTML() {
     <header class="hd home"><span></span><span></span><span class="acts"><button type="button" class="ic" data-go="add" aria-label="Steckdose hinzufügen">＋</button><button type="button" class="ic" data-go="more" aria-label="Mehr">${Q.gear}</button></span></header>
     <div class="grid">
       ${qtile('scenes', Q.scenes, 'Szenen', `${S.scenes.length} Szene${S.scenes.length === 1 ? '' : 'n'}`, false)}
-      ${qtile('guard', Q.shield, 'Home Guard', guardOn.length ? (first > S.today ? `ab ${dShort(first)}` : `${guardOn.length} in Ferien`) : 'Aus', guardOn.length > 0)}
+      ${qtile('guard', Q.plane, 'Ferien', guardOn.length ? (first > S.today ? `ab ${dShort(first)}` : `${guardOn.length} in Ferien`) : 'Aus', guardOn.length > 0)}
       ${qtile('energy', Q.energy, 'Verbrauch', `${pw(total)} jetzt`, false)}
       ${qtile('rules', Q.clock, 'Regeln', rulesOn ? `${rulesOn} aktiv` : 'keine', rulesOn > 0)}
       ${S.devices.map((d) => `<div class="tile dev ${d.relay ? 'on' : ''} ${d.online ? '' : 'off-line'}" data-mac="${d.mac}">
@@ -552,9 +552,9 @@ function sceneHTML(id) {
 }
 const saveScenes = async () => { try { S.scenes = await api('api/scenes', { method: 'PUT', body: JSON.stringify({ scenes: S.scenes }) }); render(); } catch (e) { toast(e.message, true); } };
 
-// ---------- Home Guard, Regeln, Alarme, Mehr ----------
+// ---------- Ferien (alle Steckdosen), Regeln, Alarme, Mehr ----------
 function guardHTML() {
-  return HD('Home Guard', 'home') + '<p class="intro">Während deiner Ferien schalten die gewählten Steckdosen morgens und abends zu wechselnden Zeiten, damit das Haus bewohnt wirkt.</p>'
+  return HD('Ferien', 'home') + '<p class="intro">Ferienmodus aller Steckdosen auf einen Blick. Eingeschaltet geht eine Steckdose in den Ferien morgens und abends zu wechselnden Zeiten an, damit das Haus bewohnt wirkt. Daten und Zeiten stellst du bei der Steckdose unter „Ferien“ ein.</p>'
     + `<div class="ls">${S.devices.map((d) => { const v = d.cfg.vacation, today = d.vacationToday.map((s) => `${s.key} ${s.start}`).join(', ');
       return `<div class="row"><button type="button" class="tx" data-go="dev/${d.mac}/vacation" style="text-align:left;flex:1"><b>${esc(d.name)} ›</b><span>${v.on ? `${dShort(v.from)}–${dShort(v.to)}${today ? ` · heute ${today}` : ''}` : 'aus'}</span></button>${sw(`${d.mac}:vacation.on`, v.on, `Ferien ${d.name}`)}</div>`; }).join('')}</div>`;
 }

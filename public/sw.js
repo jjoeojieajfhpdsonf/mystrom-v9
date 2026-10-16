@@ -1,6 +1,6 @@
 // Service Worker: Alarme als Mitteilung anzeigen, beim Antippen die passende Steckdose öffnen (#dev/MAC),
 // und schneller Start: App-Dateien frisch vom Server, nach 2 s ohne Netz die zuletzt gespeicherte Version. Daten (/api/) nie.
-const CACHE = 'mystrom-v9-6';
+const CACHE = 'mystrom-v9-7';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil((async () => {
   for (const k of await caches.keys()) if (k !== CACHE) await caches.delete(k);
