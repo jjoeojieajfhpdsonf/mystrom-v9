@@ -188,3 +188,7 @@ html.paging, html.paging body { overflow-x: hidden; }
 .tile.dev.big .sub { font-size: 12.5px; }
 .tile.dev.on .face .sock { filter: drop-shadow(0 0 2px rgb(74 222 128 / .8)) drop-shadow(0 6px 16px rgb(74 222 128 / .25)); }
 .note.free { margin-top: 14px; }
+.tile.dev.big { touch-action: manipulation; }
+.tile.dev.big .face { transition: background .25s, box-shadow .25s, transform .15s; }
+.tile.dev.big:active .face { transform: scale(.98); filter: none; }
+.tile.dev.big .sock { transition: filter .3s; }

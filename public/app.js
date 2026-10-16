@@ -205,6 +205,8 @@ function back(parent) {
   scrolls[cur()] = scrollY;
   const i = stack.lastIndexOf(parent);
   if (i >= 0 && i < stack.length - 1) { history.go(i - (stack.length - 1)); return; } // popstate erledigt den Rest
+  // sonst einen Schritt dorthin zurück, woher man kam (z. B. Mehr → Einstellungen einer Steckdose → zurück zu Mehr)
+  if (stack.length > 1) { history.back(); return; }
   stack.pop(); if (stack[stack.length - 1] !== parent) stack.push(parent);
   dir = -1;
   history.replaceState(null, '', `#${parent}`);
@@ -308,7 +310,7 @@ function homeHTML() {
   const rulesOn = S.devices.reduce((a, d) => a + FEAT.filter(([k]) => k !== 'eval' && k !== 'alarms' && featInfo(d, k)[0]).length, 0);
   const first = guardOn.map((d) => d.cfg.vacation.from).sort()[0];
   return `<i class="amb ${S.devices.some((d) => d.relay) ? 'on' : ''}"></i>
-    <header class="hd home"><span class="logo"><i></i>myStrom</span><span></span><span class="acts"><button type="button" class="ic" data-go="add" aria-label="Steckdose hinzufügen">＋</button><button type="button" class="ic" data-go="more" aria-label="Mehr">${Q.gear}</button></span></header>
+    <header class="hd home"><span></span><span></span><span class="acts"><button type="button" class="ic" data-go="add" aria-label="Steckdose hinzufügen">＋</button><button type="button" class="ic" data-go="more" aria-label="Mehr">${Q.gear}</button></span></header>
     <div class="grid">
       ${qtile('scenes', Q.scenes, 'Szenen', `${S.scenes.length} Szene${S.scenes.length === 1 ? '' : 'n'}`, false)}
       ${qtile('guard', Q.shield, 'Home Guard', guardOn.length ? (first > S.today ? `ab ${dShort(first)}` : `${guardOn.length} in Ferien`) : 'Aus', guardOn.length > 0)}
@@ -334,7 +336,7 @@ function addHTML() {
 function deviceHTML(d) {
   const ORDER = [['schedule', 'clock', 'Zeitplan'], ['idle', 'moon', 'Nachts aus'], ['temp', 'temp', 'Temperatur'], ['sun', 'sun', 'Sonne'], ['vacation', 'plane', 'Ferien'],
     ['alarms', 'bell', 'Alarme'], ['saver', 'leaf', 'Stromsparen'], ['timer', 'timer', 'Timer'], ['eval', 'energy', 'Auswertung']];
-  const big = !d.online ? ['Offline', d.status] : d.relay ? [pw(d.w), 'An · wischen schaltet aus'] : ['Aus', 'wischen schaltet ein'];
+  const big = !d.online ? ['Offline', d.status] : d.relay ? [pw(d.w), 'An · antippen schaltet aus'] : ['Aus', 'antippen schaltet ein'];
   return `<i class="amb ${d.relay ? 'on' : ''}"></i>` + HD(esc(d.name), 'home', `<button type="button" class="ic" data-go="dev/${d.mac}/settings" aria-label="Einstellungen">${Q.gear}</button>`)
     + `<div class="grid">
       <div class="tile dev big ${d.relay ? 'on' : ''} ${d.online ? '' : 'off-line'}">
@@ -659,7 +661,7 @@ async function flip(tile, d, sign) {
   if (!ok) shake(tile);
 }
 app.addEventListener('pointerdown', (e) => {
-  const b = e.target.closest('[data-swipe]'); if (!b || swipe) return;
+  const b = e.target.closest('[data-swipe]'); if (!b || swipe || b.dataset.inpage) return; // die grosse Kachel auf der Geräteseite schaltet nur per Tippen
   swipe = { b, tile: b.closest('.tile'), x: e.clientX, y: e.clientY, dx: 0, id: e.pointerId, live: false };
 });
 // Sicherheitsnetz: bleibt ein Wischen hängen (z. B. Finger verlässt das Fenster), nach 3 s freigeben
@@ -753,6 +755,13 @@ function sceneMenu(id) {
     ['Löschen', async () => { S.scenes = S.scenes.filter((x) => x.id !== id); await saveScenes(); toast(`„${sc.name}“ gelöscht`); }, true],
   ]);
 }
+// grosse Kachel auf der Geräteseite: antippen schaltet direkt, die LED wechselt die Farbe
+async function tapSwitch(el, d) {
+  const tile = el.closest('.tile');
+  if (d.cfg.lock || !d.online) { shake(tile); haptic([8, 60, 8]); toast(d.cfg.lock ? `${d.name}: Tastensperre ist an` : `${d.name} ist nicht erreichbar`, !d.cfg.lock); return; }
+  haptic();
+  if (!await switchDev(d.mac, !d.relay)) shake(tile);
+}
 // ---------- Klicks ----------
 app.addEventListener('click', async (e) => {
   const at = (s) => e.target.closest(s), [r0, r1] = route();
@@ -762,7 +771,7 @@ app.addEventListener('click', async (e) => {
     if (Date.now() - swiped < 450) return;
     const d = dev(el.dataset.swipe);
     // Startseite: Tippen öffnet das Gerät. Geräteseite: die grosse Schalter-Kachel schaltet beim Tippen.
-    if (el.dataset.inpage) tapFlip(el, d);
+    if (el.dataset.inpage) tapSwitch(el, d);
     else go(`dev/${d.mac}`);
   } else if ((el = at('[data-back]'))) back(el.dataset.back);
   else if (at('[data-roomadd]')) { const i = $('[data-roomnew]'); if (i.value.trim()) { i.blur(); saveCfg(r1, { room: i.value.trim().slice(0, 40) }); setTimeout(() => back(`dev/${r1}/settings`), 180); } else i.focus(); }
